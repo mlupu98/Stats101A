@@ -1,0 +1,129 @@
+---
+title: "fifa_wages"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r libraries}
+library(ggplot2)
+library(car)
+```
+
+```{r import_data}
+player_data <- read.csv("FifaTrainNew.csv")
+head(player_data)
+
+#ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = Age, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = Finishing, y = WageNew)) + geom_point()
+
+#ggplot(data = player_data, aes(x = Potential*Age, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = Weak.Foot, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = International.Reputation, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = Real.Face, y = WageNew)) + geom_point()
+
+colnames(player_data)
+
+ggplot(data = player_data, aes(x = Position, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKDiving, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKPositioning, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKKicking, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKHandling, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKReflexes, y = WageNew)) + geom_point()
+
+#ggplot(data = player_data[player_data$Position == "ST",], aes(x = Finishing, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "CF",], aes(x = Finishing, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "CAM",], aes(x = Finishing, y = WageNew)) + geom_point()
+
+
+
+levels(player_data$Position )
+
+#May need to use diff stats for  GK?
+
+```
+
+
+```{r import_test_data}
+
+test_data <- read.csv("FifaNoY.csv")
+head(test_data)
+```
+
+```{r sample_sol}
+
+sol1 <- read.csv("SampleSol.csv")
+sol2 <- read.csv("SampleSol2.csv")
+FifaNoY <- read.csv("FifaNoy.csv")
+head(FifaNoY)
+head(sol1)
+head(sol2)
+```
+
+
+```{r init_pred}
+
+
+(over_rating_pred <- lm(log(player_data$Wage) ~ player_data$Overall + player_data$Age + player_data$Club))
+
+summary(over_rating_pred)
+
+
+
+
+
+
+inverseResponsePlot(over_rating_pred)
+over_int <- over_rating_pred$coefficients[1]
+over_slope <- over_rating_pred$coefficients[2]
+
+plot(over_rating_pred)
+
+pred_wages <- test_data$Overall * over_slope + over_int
+result_matrix <- matrix(test_data$Ob)
+result_matrix <- cbind(result_matrix, pred_wages)
+colnames(result_matrix) <- c("Ob", "WageNew")
+write.csv(result_matrix, "Test Regression", row.names = FALSE)
+nrow(result_matrix)
+```
+
+
+```{r test}
+
+
+train_func <- function(train_ratio, FUN, y_power = 1, response, ...) {
+    size <- length(response)
+    size_vec <- seq_len(size)
+    train_rows <- sample(1:size, size = train_ratio * size, replace = FALSE)
+    test_rows <- size_vec[-train_rows]
+
+    predictors <- list(...)   
+    
+    lin_reg <- FUN(response[train_rows]^y_power ~ predictors[[1]][train_rows] + predictors[[2]][train_rows])
+    
+    coef <- lin_reg$coefficients
+    
+    (error <- sum((response[test_rows] - (coef[1] + coef[2] * predictors[[1]][test_rows] + coef[3] * predictors[[2]][test_rows]))^2))
+    
+}
+
+train_func(0.9, lm, y_power = 0.5, player_data$WageNew, player_data$Age, player_data$Overall)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
