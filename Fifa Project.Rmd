@@ -42,6 +42,7 @@ player_data <- na.omit(player_data)
 #ggplot(data = player_data[player_data$Position == "CF",], aes(x = Finishing, y = WageNew)) + geom_point()
 #ggplot(data = player_data[player_data$Position == "CAM",], aes(x = Finishing, y = WageNew)) + geom_point()
 
+plot
 
 
 levels(player_data$Position )
@@ -115,6 +116,13 @@ anova(over_rating_pred2)
 
 
 #inverseResponsePlot(over_rating_pred)
+over_rating_pred <- lm((player_data$Wage)^0.8 ~ 0 + player_data$Overall + player_data$International.Reputation + player_data$HL + player_data$Potential + player_data$Composure + player_data$Club)
+
+
+
+
+anova(over_rating_pred)
+inverseResponsePlot(over_rating_pred)
 over_int <- over_rating_pred$coefficients[1]
 over_slope <- over_rating_pred$coefficients[2]
 over_slope <- over_rating_pred$coefficients[2]
@@ -187,7 +195,29 @@ train_func(0.9, lm, y_power = 1, player_data$WageNew, player_data$Age, player_da
 ```
 
 ```{r test}
+tr_func <- function(train_ratio, y_power = 1, response, ...) {
+    avg <- 0
+    for(i in 1:10) {
+        size <- length(response)
+        size_vec <- seq_len(size)
+        train_rows <- sample(1:size, size = train_ratio * size, replace = FALSE)
+        test_rows <- size_vec[-train_rows]
+    
+        predictors <- list(...)   
+        
+        lin_reg <- lm(response[train_rows] ~ 0 + predictors[[1]][train_rows] + predictors[[3]][train_rows] + predictors[[4]][train_rows]) #+ predictors[[5]][train_rows])
+        
+        pred_wages <- predict(lin_reg, player_data[test_rows,])
+        
+      
+        SSR <- sum((pred_wages - player_data$WageNew[test_rows])^2)
+        avg <- avg + SSR / 10
 
+    }
+    avg
+}
+
+tr_func(0.8, 1, player_data$WageNew, player_data$Overall, player_data$Potential, player_data$HL, player_data$International.Reputation, player_data$Club )
 
 
 ```
