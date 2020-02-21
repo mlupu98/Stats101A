@@ -26,8 +26,8 @@ ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = International.Reputation, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Real.Face, y = WageNew)) + geom_point()
 
-colnames(player_data)
 player_data <- na.omit(player_data)
+
 
 #ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
 
@@ -42,12 +42,22 @@ player_data <- na.omit(player_data)
 #ggplot(data = player_data[player_data$Position == "CF",], aes(x = Finishing, y = WageNew)) + geom_point()
 #ggplot(data = player_data[player_data$Position == "CAM",], aes(x = Finishing, y = WageNew)) + geom_point()
 
-plot
-
-
 levels(player_data$Position )
 
 #May need to use diff stats for  GK?
+pos_vec <- c()
+for(elem in player_data$Position) {
+    if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+        pos_vec <- c(pos_vec, "B")
+    } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+        pos_vec <- c(pos_vec, "M")
+    } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+        pos_vec <- c(pos_vec, "F")
+    }
+}
+
+player_data$new_pos <- pos_vec
+
 
 ```
 
@@ -82,7 +92,7 @@ anova(over_rating_pred1)
 
 player_data$WageNew[order(player_data$WageNew)]
 
-player_data$HL <- ifelse(player_data$Overall > 82, "H", "L")
+player_data$HL <- ifelse(player_data$Overall > 85, "H", "L")
 
 ```
 
@@ -205,7 +215,7 @@ tr_func <- function(train_ratio, y_power = 1, response, ...) {
     
         predictors <- list(...)   
         
-        lin_reg <- lm(response[train_rows] ~ 0 + predictors[[1]][train_rows] + predictors[[3]][train_rows] + predictors[[4]][train_rows]) #+ predictors[[5]][train_rows])
+        lin_reg <- lm((response[train_rows])^y_power ~ 0 + predictors[[1]][train_rows] + predictors[[2]][train_rows] + predictors[[5]][train_rows])#+ predictors[[5]][train_rows])
         
         pred_wages <- predict(lin_reg, player_data[test_rows,])
         
@@ -217,7 +227,9 @@ tr_func <- function(train_ratio, y_power = 1, response, ...) {
     avg
 }
 
-tr_func(0.8, 1, player_data$WageNew, player_data$Overall, player_data$Potential, player_data$HL, player_data$International.Reputation, player_data$Club )
+inverseResponsePlot(lm(player_data$WageNew ~  player_data$Overall + player_data$Potential + player_data$new_pos))
+
+tr_func(0.8, 1, player_data$WageNew, player_data$Overall, player_data$Potential, player_data$HL, player_data$International.Reputation, player_data$new_pos )
 
 
 ```
