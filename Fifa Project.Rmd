@@ -11,14 +11,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r libraries}
 library(ggplot2)
-library(car)
 ```
 
 ```{r import_data}
 player_data <- read.csv("FifaTrainNew.csv")
 head(player_data)
 
-#ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Age, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Finishing, y = WageNew)) + geom_point()
 
@@ -28,8 +27,11 @@ head(player_data)
 #ggplot(data = player_data, aes(x = Real.Face, y = WageNew)) + geom_point()
 
 colnames(player_data)
+player_data <- na.omit(player_data)
 
-ggplot(data = player_data, aes(x = Position, y = WageNew)) + geom_point()
+#ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
+
+
 #ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKDiving, y = WageNew)) + geom_point()
 #ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKPositioning, y = WageNew)) + geom_point()
 #ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKKicking, y = WageNew)) + geom_point()
@@ -53,6 +55,13 @@ levels(player_data$Position )
 
 test_data <- read.csv("FifaNoY.csv")
 head(test_data)
+#ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
+#player_data <- player_data[is.na(player_data)] <- "0"
+player_data[is.na(player_data)] <- 0
+
+vals <- cor(player_data[sapply(player_data,function(x) !is.factor(x))])
+wage_corr <- vals[,'WageNew']
+wage_corr[order(wage_corr)]
 ```
 
 ```{r sample_sol}
@@ -63,28 +72,60 @@ FifaNoY <- read.csv("FifaNoy.csv")
 head(FifaNoY)
 head(sol1)
 head(sol2)
+
+over_rating_pred2<- lm(player_data$Wage ~ player_data$Overall)
+
+over_rating_pred1 <- lm(player_data$Wage ~ player_data$Overall + player_data$International.Reputation + player_data$Potential + player_data$Reactions + player_data$Composure)
+summary(over_rating_pred1)
+anova(over_rating_pred1)
+
+player_data$WageNew[order(player_data$WageNew)]
+
+player_data$HL <- ifelse(player_data$Overall > 82, "H", "L")
+
 ```
 
 
 ```{r init_pred}
 
 
-(over_rating_pred <- lm(log(player_data$Wage) ~ player_data$Overall + player_data$Age + player_data$Club))
-
-summary(over_rating_pred)
+over_rating_pred <- lm(player_data$Wage ~ 0 + player_data$Overall + player_data$International.Reputation + player_data$HL + player_data$Potential)
 
 
+anova(over_rating_pred)
+
+over_rating_pred1 <- lm(player_data$Wage ~ 0 + player_data$Overall + player_data$International.Reputation + player_data$Potential + player_data$Reactions + player_data$Composure)
 
 
+anova(over_rating_pred1)
+outliers <- player_data$WageNew[abs(rstandard(over_rating_pred1))>=2]
 
 
-inverseResponsePlot(over_rating_pred)
+wages <- player_data$WageNew[order(player_data$WageNew)]
+
+
+player_data_outliers <- player_data[order(player_data$WageNew)[1:9500], ]
+
+#player_data_outliers
+
+over_rating_pred2 <- lm(player_data_outliers$Wage ~ 0 + player_data_outliers$Overall + player_data_outliers$International.Reputation + player_data_outliers$Potential + player_data_outliers$Reactions + player_data_outliers$Composure)
+ 
+anova(over_rating_pred2)
+#over_rating_pred <- lm(player_data$Wage ~ 0 + player_data$Overall + player_data$International.Reputation + player_data$Potential + player_data$Reactions + player_data$Composure + player_data$Club)
+
+
+#inverseResponsePlot(over_rating_pred)
 over_int <- over_rating_pred$coefficients[1]
 over_slope <- over_rating_pred$coefficients[2]
+over_slope <- over_rating_pred$coefficients[2]
 
-plot(over_rating_pred)
 
-pred_wages <- test_data$Overall * over_slope + over_int
+#plot(over_rating_pred)
+
+pred_wages <- predict(over_rating_pred, test_data)
+
+
+plot(pred_wages)
 result_matrix <- matrix(test_data$Ob)
 result_matrix <- cbind(result_matrix, pred_wages)
 colnames(result_matrix) <- c("Ob", "WageNew")
@@ -93,8 +134,27 @@ nrow(result_matrix)
 ```
 
 
-```{r test}
+```{r clean}
 
+#ifelse(player_data == "", NA, player_dat)
+sum(player_data == "")
+
+wages <- player_data$WageNew[order(player_data$WageNew)]
+
+order(wages)
+
+#(table(new_w <- cut(wages, 20)))
+#plot(table(new_w), ylim = c(0, 20), xlim = c(0, 10000))
+
+hist(wages, xlim = c(0, 12000), ylim = c(0, 4000))
+
+plot(wages)
+
+length(wages)
+length(which(wages > 2000))
+```
+
+```{r test}
 
 train_func <- function(train_ratio, FUN, y_power = 1, response, ...) {
     size <- length(response)
@@ -104,15 +164,32 @@ train_func <- function(train_ratio, FUN, y_power = 1, response, ...) {
 
     predictors <- list(...)   
     
-    lin_reg <- FUN(response[train_rows]^y_power ~ predictors[[1]][train_rows] + predictors[[2]][train_rows])
+    lin_reg <- FUN(response[train_rows] ~ predictors[[1]][train_rows] + predictors[[2]][train_rows] + predictors[[3]][train_rows])# + predictors[[4]][train_rows])
+
     
-    coef <- lin_reg$coefficients
-    
-    (error <- sum((response[test_rows] - (coef[1] + coef[2] * predictors[[1]][test_rows] + coef[3] * predictors[[2]][test_rows]))^2))
-    
+    (coef <- lin_reg$coefficients)
+
+    (error <- sum((response[test_rows] - (coef[1] + coef[2] * predictors[[1]][test_rows] + coef[3] * predictors[[2]][test_rows] + coef[4] * predictors[[3]][test_rows]))^2))
+
+        
 }
 
-train_func(0.9, lm, y_power = 0.5, player_data$WageNew, player_data$Age, player_data$Overall)
+#average_rsq <- 0
+
+times <- 50
+for(i in seq_len(times)) {
+    average_rsq <- average_rsq + train_func(0.9, lm, y_power = 1, player_data$WageNew, player_data$Age, player_data$Overall, player_data$International.Reputation) / times
+}
+formatC(average_rsq, format = "e", digits = 5)
+train_func(0.9, lm, y_power = 1, player_data$WageNew, player_data$Age, player_data$Overall, player_data$International.Reputation)
+
+
+```
+
+```{r test}
+
+
+
 ```
 
 
