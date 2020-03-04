@@ -14,19 +14,42 @@ library(ggplot2)
 ```
 
 ```{r import_data}
-player_data <- read.csv("FifaTrainNew.csv")
+player_data <- read.csv("../fifa2019wages/FifaTrainNew.csv", stringsAsFactors = FALSE)
 head(player_data)
 
-ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
+
+for(i in 1:length(player_data$Club)) {
+    if(is.na(player_data$Club[i]) | player_data$Club[i] == "NA"){
+        player_data$Club[i] <- "MISSING"
+    }
+}
+
+for(i in 1:length(player_data$International.Reputation)) {
+    if(is.na(player_data$International.Reputation[i])){
+        player_data$International.Reputation[i] <- 1
+    }
+}
+#player_data$Club
+
+(sum(is.na(player_data$Overall)))
+sum(is.na(player_data$International.Reputation))
+sum(is.na(player_data$Age))
+sum(is.na(player_data$Club))
+
+#ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
+
 #ggplot(data = player_data, aes(x = Age, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Finishing, y = WageNew)) + geom_point()
+
+#player_data <- na.omit(player_data)
+#(sum(is.na(player_data)))
 
 #ggplot(data = player_data, aes(x = Potential*Age, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Weak.Foot, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = International.Reputation, y = WageNew)) + geom_point()
 #ggplot(data = player_data, aes(x = Real.Face, y = WageNew)) + geom_point()
 
-player_data <- na.omit(player_data)
+#player_data <- na.omit(player_data)
 
 
 #ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
@@ -42,37 +65,46 @@ player_data <- na.omit(player_data)
 #ggplot(data = player_data[player_data$Position == "CF",], aes(x = Finishing, y = WageNew)) + geom_point()
 #ggplot(data = player_data[player_data$Position == "CAM",], aes(x = Finishing, y = WageNew)) + geom_point()
 
-levels(player_data$Position )
+#levels(player_data$Position )
 
 #May need to use diff stats for  GK?
-pos_vec <- c()
-for(elem in player_data$Position) {
-    if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
-        pos_vec <- c(pos_vec, "B")
-    } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
-        pos_vec <- c(pos_vec, "M")
-    } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
-        pos_vec <- c(pos_vec, "F")
-    }
-}
+#pos_vec <- c()
+#for(elem in player_data$Position) {
+#    if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+#        pos_vec <- c(pos_vec, "B")
+#    } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == #"RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+#        pos_vec <- c(pos_vec, "M")
+#    } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == #"RF" | elem == "RS" | elem == "ST") {
+#        pos_vec <- c(pos_vec, "F")
+#    }
+#}
 
-player_data$new_pos <- pos_vec
 
 
 ```
 
 
 ```{r import_test_data}
+library(assertthat)
+test_data <- read.csv("../fifa2019wages/FifaNoY.csv")
+player_data <- read.csv("../fifa2019wages/FifaTrainNew.csv", stringsAsFactors = FALSE)
 
-test_data <- read.csv("FifaNoY.csv")
-head(test_data)
+levels(player_data$Position)
+cor_data <- na.omit(player_data)
+#head(test_data)
 #ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
 #player_data <- player_data[is.na(player_data)] <- "0"
-player_data[is.na(player_data)] <- 0
-
-vals <- cor(player_data[sapply(player_data,function(x) !is.factor(x))])
+#player_data[is.na(player_data)] <- 0
+cor_goalie <- subset(player_data, Position == "GK")
+vals <- cor(cor_data[sapply(cor_data, is.numeric)])
 wage_corr <- vals[,'WageNew']
 wage_corr[order(wage_corr)]
+
+vals_g <- cor(cor_goalie[sapply(cor_goalie, is.numeric)])
+wage_corr_g <- vals_g[,'WageNew']
+wage_corr_g[order(wage_corr_g)]
+
+
 ```
 
 ```{r sample_sol}
@@ -92,7 +124,7 @@ anova(over_rating_pred1)
 
 player_data$WageNew[order(player_data$WageNew)]
 
-player_data$HL <- ifelse(player_data$Overall > 85, "H", "L")
+#player_data$HL <- ifelse(player_data$Overall > 85, "H", "L")
 
 ```
 
@@ -100,7 +132,7 @@ player_data$HL <- ifelse(player_data$Overall > 85, "H", "L")
 ```{r init_pred}
 
 
-over_rating_pred <- lm(player_data$Wage ~ 0 + player_data$Overall + player_data$International.Reputation + player_data$HL + player_data$Potential)
+over_rating_pred <- lm(player_data$Wage ~ player_data$Overall + player_data$International.Reputation + player_data$HL + player_data$Potential)
 
 
 anova(over_rating_pred)
@@ -215,7 +247,7 @@ tr_func <- function(train_ratio, y_power = 1, response, ...) {
     
         predictors <- list(...)   
         
-        lin_reg <- lm((response[train_rows])^y_power ~ 0 + predictors[[1]][train_rows] + predictors[[2]][train_rows] + predictors[[5]][train_rows])#+ predictors[[5]][train_rows])
+        lin_reg <- lm(log((response[train_rows])^y_power) ~ 0 + predictors[[1]][train_rows] + predictors[[2]][train_rows] + predictors[[5]][train_rows] + predictors[[6]][train_rows])
         
         pred_wages <- predict(lin_reg, player_data[test_rows,])
         
@@ -227,20 +259,257 @@ tr_func <- function(train_ratio, y_power = 1, response, ...) {
     avg
 }
 
-inverseResponsePlot(lm(player_data$WageNew ~  player_data$Overall + player_data$Potential + player_data$new_pos))
+inverseResponsePlot(lm(log(WageNew) ~ Overall + Potential + new_pos, data = player_data))
 
-tr_func(0.8, 1, player_data$WageNew, player_data$Overall, player_data$Potential, player_data$HL, player_data$International.Reputation, player_data$new_pos )
+tr_func(0.8, 1, player_data$WageNew, player_data$Overall, player_data$Potential, player_data$HL, player_data$International.Reputation, player_data$new_pos, player_data$HL )
+
 
 
 ```
 
 
+```{r pred}
+library("car")
+test_data <- read.csv("FifaNoY.csv", stringsAsFactors = FALSE)
+
+for(i in 1:length(test_data$Club)) {
+    if(is.na(test_data$Club[i]) | !is.element(test_data$Club[i], teams) ){
+        test_data$Club[i] <- "MISSING"
+    }
+    if(is.na(test_data$Overall[i])){
+        test_data$Overall[i] <- median(test_data$Overall[i])
+    }
+    if(is.na(test_data$Age[i])){
+        test_data$Age[i] <- median(test_data$Age[i])
+    }
+    if(is.na(test_data$International.Reputation[i])){
+        test_data$International.Reputation[i] <- 1
+    }
+}
+
+predi <- lm(log(player_data$WageNew) ~ 0 + player_data$Overall + player_data$Age + player_data$Club)
+
+#pos_vec <- c()
+#for(elem in test_data$Position) {
+#    if (is.na(elem)) {
+#        pos_vec <- c(pos_vec, "0")
+#    } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == #"RWB"){
+#        pos_vec <- c(pos_vec, "B")
+#    } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == #"RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+#        pos_vec <- c(pos_vec, "M")
+#    } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == #"RF" | elem == "RS" | elem == "ST") {
+#        pos_vec <- c(pos_vec, "F")
+#    } else {
+#        pos_vec <- c(pos_vec, "GK")
+#    }
+#}
+
+sum(is.na(test_data$Club))
+sum(is.na(test_data$Age))
+sum(is.na(test_data$Overall))
+#sum(is.na(test_data$Club))
+
+teams <- player_data$Club
 
 
 
 
 
+inverseResponsePlot(predi)
 
+#test_data$Club <- ifelse(is.na(test_data$Club), "MISSING", test_data$Club)
+#test_data$Overall <- ifelse(is.na(test_data$Overall), median(test_data$Overall), test_data$Overall)
+#test_data$Age <- ifelse(is.na(test_data$Age), median((test_data$Age)), test_data$Age)
+
+#test_data <- na.omit(test_data)
+#sum(is.na(test_data))
+
+#summary(predi)
+#anova(predi)
+#test_data$new_pos <- pos_vec
+
+#plot(table(player_data$Age))
+#plot(table(player_data$Overall))
+
+pred_wages <- predict(predi, test_data)
+#pred_wages1 <- predict(predi, player_data)
+
+#min_wage <- min(pred_wages[pred_wages > 0])
+
+
+#for(i in 1:length(pred_wages)) {
+#    print(i)
+#    if(pred_wages[i] < 0) {
+#        pred_wages[i] <- min_wage
+#    }
+#}
+
+pred_wages <- exp(pred_wages)
+
+#plot(pred_wages1)
+#plot(player_data$WageNew)
+result_matrix <- matrix(test_data$Ob)
+result_matrix <- cbind(result_matrix, pred_wages)
+colnames(result_matrix) <- c("Ob", "WageNew")
+write.csv(result_matrix, "Test Regression", row.names = FALSE)
+#nrow(result_matrix)
+
+#table(player_data$Club)
+#sum(is.na(test_data))
+#pred_wages < 0
+
+
+
+```
+
+
+```{r pred}
+library("car")
+#player_data$
+
+#player_data <- read.csv("../fifa2019wages/FifaTrainNew.csv", stringsAsFactors = FALSE)
+head(player_data)
+dim(player_data)
+
+for(i in 1:length(player_data$Club)) {
+    if(is.na(player_data$Club[i]) | player_data$Club[i] == "NA"){
+        player_data$Club[i] <- "MISSING"
+    }
+}
+
+for(i in 1:length(player_data$International.Reputation)) {
+    if(is.na(player_data$International.Reputation[i])){
+        player_data$International.Reputation[i] <- 1
+    }
+}
+
+
+sum(is.na(player_data$Overall))
+sum(is.na(player_data$International.Reputation))
+sum(is.na(player_data$Age))
+sum(is.na(player_data$Club))
+
+#test_data <- read.csv("FifaNoY.csv", stringsAsFactors = FALSE)
+
+test_data$Reactions[is.na(test_data$Reactions)] <- 55
+test_data$Composure[is.na(test_data$Composure)] <- 55
+test_data$International.Reputation[is.na(test_data$International.Reputation)] <- 1
+
+
+sum(is.na(test_data$Reactions))
+
+for(i in 1:length(test_data$Club)) {
+    if(is.na(test_data$Club[i]) ){
+        test_data$Club[i] <- "MISSING"
+    }
+    if(is.na(test_data$Overall[i])){
+        test_data$Overall[i] <- median(test_data$Overall[i])
+    }
+    if(is.na(test_data$Age[i])){
+        test_data$Age[i] <- median(test_data$Age[i])
+    }
+    if(is.na(test_data$International.Reputation[i])){
+        test_data$International.Reputation[i] <- 1
+    }
+    if(is.na(test_data$ShortPassing[i])){
+        test_data$ShortPassing[i] <- 55
+    }
+    if(is.na(test_data$BallControl[i])){
+        test_data$BallControl[i] <- 55
+    }
+}
+
+#predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data)
+
+lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club, data = player_data)
+
+#plot(predi)
+#summary(predi)
+#anova(predi)
+
+sum(is.na(test_data$Club))
+sum(is.na(test_data$Age))
+sum(is.na(test_data$Overall))
+sum(is.na(test_data$Club))
+sum(is.na(test_data$Reactions))
+sum(is.na(test_data$Composure))
+sum(is.na(test_data$Special))
+sum(is.na(test_data$ShortPassing))
+sum(is.na(test_data$BallControl))
+
+
+
+vif(predi)
+
+cor(player_data$Age, player_data$Overall)
+
+inverseResponsePlot(predi)
+
+pred_wages <- predict(predi, test_data)
+
+pred_wages <- exp(pred_wages)
+
+
+result_matrix <- matrix(test_data$Ob)
+result_matrix <- cbind(result_matrix, pred_wages)
+colnames(result_matrix) <- c("Ob", "WageNew")
+write.csv(result_matrix, "Test Regression", row.names = FALSE)
+
+plot(pred_wages)
+```
+
+```{r test}
+library(ggplot2)
+
+pos_vec <- c()
+for(elem in test_data$Position) {
+   if (is.na(elem)) {
+       pos_vec <- c(pos_vec, "0")
+   } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+       pos_vec <- c(pos_vec, "B")
+   } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+       pos_vec <- c(pos_vec, "M")
+   } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+       pos_vec <- c(pos_vec, "F")
+   } else {
+       pos_vec <- c(pos_vec, "GK")
+   }
+}
+
+test_data$newPos = pos_vec
+
+ggplot(data = player_data, aes(x = newPos, y = WageNew)) + geom_point()
+
+?plot
+#plot(predi)
+```
+
+
+```{r step}
+
+library(MASS)
+# Fit the full model 
+full.model <- lm(WageNew ~ Age + Overall + Potential + Special + International.Reputation + Composure + Weak.Foot + Skill.Moves + newPos, data = player_data)
+# Stepwise regression model
+step.model <- stepAIC(full.model, direction = "forward", 
+                      trace = FALSE)
+summary(step.model)
+
+step.model$anova
+
+```
+
+
+```{r teams}
+library(ggplot2)
+#player_data$Joined
+
+
+#ggplot(data = player_data, aes(x = Joined, y = WageNew)) + geom_point()
+#for i in seq_len(len(player_data$Club)):
+ # player_data$Club[i]
+  
+```
 
 
 
