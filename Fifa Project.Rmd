@@ -361,6 +361,23 @@ write.csv(result_matrix, "Test Regression", row.names = FALSE)
 
 
 ```
+```{r change_club}
+
+clubNames = unique(player_data[,"Club"])
+avgSalaries <- c()
+
+#player_data$avg <- c()
+
+length(unique(player_data$Club))
+
+for(club in clubNames){
+    avg <- mean(player_data[which(player_data$Club == club),]$WageNew)
+    player_data[which(player_data$Club == club),]$avg <- avg
+}
+
+head(player_data)
+  
+```
 
 
 ```{r pred}
@@ -421,7 +438,7 @@ for(i in 1:length(test_data$Club)) {
 
 #predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data)
 
-lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club, data = player_data)
+#predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club, data = player_data)
 
 #plot(predi)
 #summary(predi)
@@ -462,7 +479,7 @@ plot(pred_wages)
 library(ggplot2)
 
 pos_vec <- c()
-for(elem in test_data$Position) {
+for(elem in player_data$Position) {
    if (is.na(elem)) {
        pos_vec <- c(pos_vec, "0")
    } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
@@ -476,7 +493,7 @@ for(elem in test_data$Position) {
    }
 }
 
-test_data$newPos = pos_vec
+player_data$newPos = pos_vec
 
 ggplot(data = player_data, aes(x = newPos, y = WageNew)) + geom_point()
 
@@ -491,27 +508,132 @@ library(MASS)
 # Fit the full model 
 full.model <- lm(WageNew ~ Age + Overall + Potential + Special + International.Reputation + Composure + Weak.Foot + Skill.Moves + newPos, data = player_data)
 # Stepwise regression model
+
+
 step.model <- stepAIC(full.model, direction = "forward", 
-                      trace = FALSE)
+                      trace = FALSE, k = log(length(player_data$WageNew)))
 summary(step.model)
 
 step.model$anova
 
+
 ```
+
+
+
+
+
+
+
+
+ THIS IS WHERE HW5 STARTS
 
 
 ```{r teams}
 library(ggplot2)
 #player_data$Joined
-
+dim(player_data)
+summary(player_data$WageNew)
 
 #ggplot(data = player_data, aes(x = Joined, y = WageNew)) + geom_point()
 #for i in seq_len(len(player_data$Club)):
  # player_data$Club[i]
-  
+
 ```
 
 
+## Problem 1
+
+### a) Group Name: Kaiqi Zhu, Lec 1D
+Teammates Names: Yonatan Khalil, Matei Lupu, Jenna Park, Kaiqi Zhu
+
+### b) 
+We kept the NAs and replaced them with values that would help us analyze the data set accurately. For example, when a player was missing a skill value we gave them one on the lower end  as they tended to be players with low overall values. This meant that our dataset still had 12745 rows and 81 columns.
+
+### c)
+The following is the summary for the response variable.             
+```{r Part1}
+
+player_data <- read.csv("fifa2019wages/FifaTrainNew.csv", stringsAsFactors = FALSE)
+summary(player_data$WageNew)
+
+```
+
+### d)
+We have 6 predictors for our most recent prediction.
+
+### e)
+```{r pred}
+
+pred <- matrix(c("Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing", "Club", "newPos", NA, NA, NA, NA), ncol = 2)
+colnames(pred) = c("Numerical", "Categorical")
+
+head(pred)
+```
+
+### f)
+Our latest rank on Kaggleis 11 and our R^2 is 0.95807.
+
+### g)
+```{r plt}
+data <- player_data[, c("WageNew", "Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing", "newPos")]
+plot(data)
+```
+
+### h)
+```{r cor}
+library(corrplot)
+
+pred_data <- player_data[, c("WageNew", "Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing",)]
+cor_data <- na.omit(pred_data)
+vals <- cor(cor_data[sapply(cor_data, is.numeric)])
+
+corrplot(vals)
+```
 
 
+## Problem 5
+
+```{r best}
+library(leaps)
+sub_data = na.omit(player_data)
+sub_data1 <-  sub_data[, c("Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing")]
+
+sub <- regsubsets(as.matrix(sub_data1), log(sub_data$WageNew)) 
+sub_sum <- summary(sub)
+
+par(mfrow=c(1,1))
+plot(1:6,sub_sum$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
+
+```
+
+
+```{r P5b}
+resp <- lm(log(WageNew)~1, data=player_data)
+
+backwardAIC <- step(resp,scope=list(lower=~1,
+upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,
+direction="backward", data=player_data, k = 2))
+
+backwardBIC <- step(resp, scope=list(lower=~1,
+upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,
+direction="backward", data=player_data, k=log(nrow(player_data))))
+
+
+```
+
+
+```{r P5c}
+resp <- lm(log(WageNew)~1, data=player_data)
+
+forwardAIC <- step(resp,scope=list(lower=~1,
+upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,
+direction="forward", data=player_data, k = 2))
+
+forwardBIC <- step(resp, scope=list(lower=~1,
+upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,
+direction="forward", data=player_data, k=log(nrow(player_data))))
+
+
+```
 
