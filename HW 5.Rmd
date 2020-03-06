@@ -1,0 +1,378 @@
+---
+title: "HW5"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r dataFormatting}
+player_data <- read.csv("FifaTrainNew.csv")
+test_data <- read.csv("FifaNoY.csv")
+
+library(ggplot2)
+pos_vec <- c()
+for(elem in player_data$Position) {
+   if (is.na(elem)) {
+       pos_vec <- c(pos_vec, "0")
+   } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+       pos_vec <- c(pos_vec, "B")
+   } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+       pos_vec <- c(pos_vec, "M")
+   } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+       pos_vec <- c(pos_vec, "F")
+   } else {
+       pos_vec <- c(pos_vec, "GK")
+   }
+}
+player_data$newPos <- pos_vec
+
+
+pos_vec <- c()
+for(elem in test_data$Position) {
+   if (is.na(elem)) {
+       pos_vec <- c(pos_vec, "0")
+   } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+       pos_vec <- c(pos_vec, "B")
+   } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+       pos_vec <- c(pos_vec, "M")
+   } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+       pos_vec <- c(pos_vec, "F")
+   } else {
+       pos_vec <- c(pos_vec, "GK")
+   }
+}
+test_data$newPos <- pos_vec
+```
+
+
+```{r teams}
+library(ggplot2)
+#player_data$Joined
+#player_data <- read.csv("FifaTrainNew.csv", stringsAsFactors = FALSE)
+dim(player_data)
+summary(player_data$WageNew)
+#ggplot(data = player_data, aes(x = Joined, y = WageNew)) + geom_point()
+#for i in seq_len(len(player_data$Club)):
+ # player_data$Club[i]
+```
+
+
+## Problem 1
+
+### a) Group Name: Kaiqi Zhu, Lec 1D
+Teammates Names: Yonatan Khalil, Matei Lupu, Jenna Park, Kaiqi Zhu
+
+### b) 
+We kept the NAs and replaced them with values that would help us analyze the data set accurately. For example, when a player was missing a skill value we gave them one on the lower end  as they tended to be players with low overall values. This meant that our dataset still had 12745 rows and 81 columns.
+
+### c)
+The following is the summary for the response variable.             
+```{r Part1}
+#player_data <- read.csv("FifaTrainNew.csv", stringsAsFactors = FALSE)
+summary(player_data$WageNew)
+```
+
+### d)
+We have 6 predictors for our most recent prediction.
+
+### e)
+```{r pred}
+pred <- matrix(c("Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing", "Club", "newPos", NA, NA, NA, NA), ncol = 2)
+colnames(pred) = c("Numerical", "Categorical")
+head(pred)
+```
+
+### f)
+Our latest rank on Kaggleis 11 and our R^2 is 0.95807.
+
+### g)
+```{r plt}
+data <- player_data[, c("WageNew", "Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing", "newPos")]
+plot(data)
+```
+
+### h)
+```{r cor}
+library(corrplot)
+pred_data <- player_data[, c("WageNew", "Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing")]
+cor_data <- na.omit(pred_data)
+vals <- cor(cor_data[sapply(cor_data, is.numeric)])
+corrplot(vals)
+```
+
+
+
+## Question 2: Have you used any transformations on your predictors or on your response variable?
+
+### a) If yes, explain how you decided what transformation was to be used. List the variables and the transformation function used in your latest MLR (provide proof of your work).
+```{}
+We decided to use log transformation because we got it from the inverse response plot and thought it might be useful. The code was written as the following:
+lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club, data = player_data)
+```
+
+### b) If no, explain why the suggested transformations did not work out for your latest MLR (provide proofs of your work).
+```{}
+N/A
+```
+
+
+## Question 3: Report the following from your latest MLR:
+### a) ANOVA table.
+```{r}
+
+library("car")
+for(i in 1:length(player_data$Club)) {
+    if(is.na(player_data$Club[i]) | player_data$Club[i] == "NA"){
+        player_data$Club[i] <- "MISSING"
+    }
+}
+for(i in 1:length(player_data$International.Reputation)) {
+    if(is.na(player_data$International.Reputation[i])){
+        player_data$International.Reputation[i] <- 1
+    }
+}
+sum(is.na(player_data$Overall))
+sum(is.na(player_data$International.Reputation))
+sum(is.na(player_data$Age))
+sum(is.na(player_data$Club))
+
+test_data$Reactions[is.na(test_data$Reactions)] <- 55
+test_data$Composure[is.na(test_data$Composure)] <- 55
+test_data$International.Reputation[is.na(test_data$International.Reputation)] <- 1
+sum(is.na(test_data$Reactions))
+for(i in 1:length(test_data$Club)) {
+    if(is.na(test_data$Club[i]) ){
+        test_data$Club[i] <- "MISSING"
+    }
+    if(is.na(test_data$Overall[i])){
+        test_data$Overall[i] <- median(test_data$Overall[i])
+    }
+    if(is.na(test_data$Age[i])){
+        test_data$Age[i] <- median(test_data$Age[i])
+    }
+    if(is.na(test_data$International.Reputation[i])){
+        test_data$International.Reputation[i] <- 1
+    }
+    if(is.na(test_data$ShortPassing[i])){
+        test_data$ShortPassing[i] <- 55
+    }
+    if(is.na(test_data$BallControl[i])){
+        test_data$BallControl[i] <- 55
+    }
+}
+predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data)
+
+anova(predi)
+```
+
+### b) Sort your predictors by their importance or contributions.
+```{r}
+sort(anova(predi)$`Sum Sq`, decreasing = T)
+```
+
+
+The Sum of Squares column of the ANOVA table indicates that the predictors can be sorted in the following order by most importance/contributions to least: Overall, Club, International.Reputation, Age, newPos, Composure, Special, and ShortPassing.
+
+
+
+
+### c) Report R^2 and R^2-Adjusted using the training data.
+```{r}
+# R^2
+summary(predi)$r.squared
+
+# R^2-Adjusted
+summary(predi)$adj.r.squared
+```
+```{}
+The R^2 value is 0.889726 and the R^2-Adjusted value is 0.8836084.
+```
+
+
+
+### d) Report the VIF of every predictor in your MLR. Make sure you have no multicollinearity violation (no predictor has a VIF exceeding five). Use the following template.
+```{r}
+viftable <- data.frame("VIF" = vif(predi)[ , "GVIF^(1/(2*Df))"])
+viftable
+
+viftable[["VIF"]] >= 5
+```
+```{}
+There is no multicollinearity violation as none of the VIF values exceed five.
+```
+
+
+
+## Question 4
+
+### a)
+
+The Risiduals vs Fitted plot tracks linear assumption. This plot at its best should have a straight line and random distribution and in this case the linearity is satisfied, but due to the size of our data a slight curve is found.   
+
+The Normal Q Q plot shows the normal assumption and fits our line well. 
+
+The Scale Location plot shows constant variance and while it is not perfect, still reflects a valid model. Early in the plot we  
+
+The Residuals vs Leverage plot shows leverage and with no point within the Cook's distince we recognize that there are no bad leverage points. 
+
+```{r}
+
+library(alr3)
+library(ggplot2)
+library(car)
+library(gridExtra)
+
+diagPlot<-function(model){
+p1<-ggplot(model, aes(model$fitted, model$residuals),label=rownames(bonds)) +geom_point()
+p1<-p1+stat_smooth(method="loess")+geom_hline(yintercept=0, col="red", linetype="dashed")
+p1<-p1+xlab("Fitted values")+ylab("Residuals") 
+p1<-p1+ggtitle("Residual vs Fitted Plot")+theme_bw()
+p2<-ggplot(model,aes(sample=rstandard(model))) + stat_qq() + stat_qq_line() 
+p2<-p2+xlab("Theoretical Quantiles")+ylab("Standardized Residuals") 
+p2<-p2+ggtitle("Normal Q-Q")
+p3<-ggplot(model, aes(model$fitted, sqrt(abs(rstandard(model)))))+geom_point(na.rm=TRUE)
+p3<-p3+stat_smooth(method="loess", na.rm = TRUE)+xlab("Fitted Value") 
+p3<-p3+ylab(expression(sqrt("|Standardized residuals|"))) 
+p3<-p3+ggtitle("Scale-Location")+theme_bw()+geom_hline(yintercept=sqrt(2),
+col="red", linetype="dashed")
+p4<-ggplot(model, aes(seq_along(cooks.distance(model)), cooks.distance(model)))+geom_bar(stat="identity", position="identity")
+p4<-p4+xlab("Obs. Number")+ylab("Cook's distance")
+p4<-p4+ggtitle("Cook's distance")+theme_bw()+geom_hline(yintercept=4/(length(model$residuals-2)), col="red", linetype="dashed")
+p5<-ggplot(model, aes(hatvalues(model), rstandard(model)))+geom_point(aes(size=cooks.distance(model)), na.rm=TRUE)
+p5<-p5+stat_smooth(method="loess", na.rm=TRUE)
+p5<-p5+xlab("Leverage")+ylab("Standardized Residuals") 
+p5<-p5+ggtitle("Residual vs Leverage Plot")
+p5<-p5+scale_size_continuous("Cook's Distance", range=c(1,5))
+p5<-p5+theme_bw()+theme(legend.position="bottom")+geom_hline(yintercept=c(-2,2), col="red", linetype="dashed")+geom_vline(xintercept=4/(length(model$residuals)), col="blue", linetype="dashed")+ylim(-4,4)
+p6<-ggplot(model, aes(hatvalues(model), cooks.distance(model)))+geom_point( na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
+p6<-p6+xlab("Leverage hii")+ylab("Cook's Distance")
+p6<-p6+ggtitle("Cook's dist vs Leverage") 
+p6<-p6+geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed") 
+p6<-p6+theme_bw()
+return(grid.arrange(p1,p2,p3,p4,p5,p6,ncol=3))
+}
+
+
+
+
+
+#diagPlot(predi)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+summary(predi)
+par(mfrow = c(2,2))
+plot(predi)
+
+#pairs(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data, main = "Scatterplot Matrix")
+par(mfrow = c(1,1))
+plot(rstandard(predi))
+
+
+```
+
+
+### b)
+
+```{R}
+
+
+leverage <- hatvalues(predi) # h_ii > 2 * (p * 1) / n
+
+which(leverage >= 2 * mean(leverage)) # leverage
+
+which(leverage >= 2 * mean(leverage) & abs(rstandard(predi)) >= 2) # bad leverage
+
+
+
+```
+
+
+### c)
+
+```{r}
+
+which(abs(rstandard(predi)) >= 2) # outliers 
+
+
+which(leverage >= 2 * mean(leverage)) # good leverage 
+
+
+```
+
+### d) 
+
+```{r}
+
+#predict on training and test and compare 
+vals <- c(0,2,4,4,2,3)
+
+summary(vals)
+
+```
+
+
+
+## Problem 5
+
+### a) 
+```{r best}
+library(leaps)
+sub_data = na.omit(player_data)
+sub_data1 <-  sub_data[, c("Overall", "Age", "International.Reputation", "Composure", "Special", "ShortPassing")]
+sub <- regsubsets(as.matrix(sub_data1), log(sub_data$WageNew)) 
+sub_sum <- summary(sub)
+par(mfrow=c(1,1))
+plot(1:6,sub_sum$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
+```
+
+### b) 
+```{r P5b}
+resp <- lm(log(WageNew)~1, data=player_data)
+backwardAIC <- step(resp,scope=list(lower=~1,upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,direction="backward", data=player_data, k = 2))
+backwardBIC <- step(resp, scope=list(lower=~1, upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,direction="backward", data=player_data, k=log(nrow(player_data))))
+```
+
+### c) 
+```{r P5c}
+resp <- lm(log(WageNew)~1, data=player_data)
+
+forwardAIC <- step(resp,scope=list(lower=~1, upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing, direction="forward", data=player_data, k = 2))
+
+forwardBIC <- step(resp, scope=list(lower=~1,upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing, direction="forward", data=player_data, k=log(nrow(player_data))))
+```
+
+
+### d) 
+
+
+
+### e) 
+
+
+### f) 
+
+
+
+
+
+
+
+
