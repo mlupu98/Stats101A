@@ -605,6 +605,44 @@ sub_sum <- summary(sub)
 par(mfrow=c(1,1))
 plot(1:6,sub_sum$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
 
+om1 <- lm(log(WageNew) ~ Overall, data = sub_data)
+om2 <- lm(log(WageNew) ~ Overall + Age, data = sub_data)
+om3 <- lm(log(WageNew) ~ Overall + Age + International.Reputation, data = sub_data)
+om4 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure, data = sub_data)
+om5 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special, data = sub_data)
+om6 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + ShortPassing, data = sub_data)
+
+om7 <- predi
+
+n <- length(om1$residuals) 
+extractAIC(om1, k = 2)
+extractAIC(om1, k = log(n))
+
+n <- length(om2$residuals) 
+extractAIC(om2, k = 2)
+extractAIC(om2, k = log(n))
+
+n <- length(om3$residuals) 
+extractAIC(om3, k = 2)
+extractAIC(om3, k = log(n))
+
+n <- length(om4$residuals) 
+extractAIC(om4, k = 2)
+extractAIC(om4, k = log(n))
+
+n <- length(om5$residuals) 
+extractAIC(om5, k = 2)
+extractAIC(om5, k = log(n))
+
+n <- length(om6$residuals) 
+extractAIC(om6, k = 2)
+extractAIC(om6, k = log(n))
+
+n <- length(om7$residuals) 
+extractAIC(om7, k = 2)
+extractAIC(om7, k = log(n))
+
+
 ```
 
 
