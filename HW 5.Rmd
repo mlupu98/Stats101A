@@ -223,46 +223,53 @@ The Residuals vs Leverage plot shows leverage and with no point within the Cook'
 
 ```{r}
 
+options(warn=-1)
+
 library(alr3)
 library(ggplot2)
 library(car)
 library(gridExtra)
+library(readr)
 
-diagPlot<-function(model){
-p1<-ggplot(model, aes(model$fitted, model$residuals),label=rownames(bonds)) +geom_point()
+
+diagPlot<-function(model){ p1<-ggplot(model, aes(model$fitted, model$residuals),label=rownames(bonds))+geom_point() 
 p1<-p1+stat_smooth(method="loess")+geom_hline(yintercept=0, col="red", linetype="dashed")
 p1<-p1+xlab("Fitted values")+ylab("Residuals") 
 p1<-p1+ggtitle("Residual vs Fitted Plot")+theme_bw()
-p2<-ggplot(model,aes(sample=rstandard(model))) + stat_qq() + stat_qq_line() 
+p2<-ggplot(model,aes(sample=rstandard(model))) + stat_qq() + stat_qq_line()
+
 p2<-p2+xlab("Theoretical Quantiles")+ylab("Standardized Residuals") 
 p2<-p2+ggtitle("Normal Q-Q")
 p3<-ggplot(model, aes(model$fitted, sqrt(abs(rstandard(model)))))+geom_point(na.rm=TRUE)
 p3<-p3+stat_smooth(method="loess", na.rm = TRUE)+xlab("Fitted Value") 
 p3<-p3+ylab(expression(sqrt("|Standardized residuals|"))) 
-p3<-p3+ggtitle("Scale-Location")+theme_bw()+geom_hline(yintercept=sqrt(2),
-col="red", linetype="dashed")
+p3<-p3+ggtitle("Scale-Location")+theme_bw()+geom_hline(yintercept=sqrt(2),col="red", linetype="dashed")
+
 p4<-ggplot(model, aes(seq_along(cooks.distance(model)), cooks.distance(model)))+geom_bar(stat="identity", position="identity")
 p4<-p4+xlab("Obs. Number")+ylab("Cook's distance")
 p4<-p4+ggtitle("Cook's distance")+theme_bw()+geom_hline(yintercept=4/(length(model$residuals-2)), col="red", linetype="dashed")
+
 p5<-ggplot(model, aes(hatvalues(model), rstandard(model)))+geom_point(aes(size=cooks.distance(model)), na.rm=TRUE)
-p5<-p5+stat_smooth(method="loess", na.rm=TRUE)
-p5<-p5+xlab("Leverage")+ylab("Standardized Residuals") 
+p5<-p5+stat_smooth(method="loess", na.rm=TRUE) 
+p5<-p5+xlab("Leverage")+ylab("Standardized Residuals")
+
 p5<-p5+ggtitle("Residual vs Leverage Plot")
 p5<-p5+scale_size_continuous("Cook's Distance", range=c(1,5))
 p5<-p5+theme_bw()+theme(legend.position="bottom")+geom_hline(yintercept=c(-2,2), col="red", linetype="dashed")+geom_vline(xintercept=4/(length(model$residuals)), col="blue", linetype="dashed")+ylim(-4,4)
-p6<-ggplot(model, aes(hatvalues(model), cooks.distance(model)))+geom_point( na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
+
+p6<-ggplot(model, aes(hatvalues(model), cooks.distance(model)))+geom_point(na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
 p6<-p6+xlab("Leverage hii")+ylab("Cook's Distance")
 p6<-p6+ggtitle("Cook's dist vs Leverage") 
 p6<-p6+geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed") 
 p6<-p6+theme_bw()
-return(grid.arrange(p1,p2,p3,p4,p5,p6,ncol=3))
+return(list(rvfPlot=p1, qqPlot=p2, cvlPlot=p6))
 }
 
 
 
 
 
-#diagPlot(predi)
+diagPlot(predi)
 
 
 
@@ -321,10 +328,14 @@ which(leverage >= 2 * mean(leverage)) # good leverage
 
 ```{r}
 
-#predict on training and test and compare 
-vals <- c(0,2,4,4,2,3)
+#predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data)
 
-summary(vals)
+#predi_test <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = test_data)
+
+
+
+#summary(predi_test)
+#summary(predi)
 
 ```
 
@@ -341,6 +352,35 @@ sub <- regsubsets(as.matrix(sub_data1), log(sub_data$WageNew))
 sub_sum <- summary(sub)
 par(mfrow=c(1,1))
 plot(1:6,sub_sum$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
+om1 <- lm(log(WageNew) ~ Overall, data = sub_data)
+om2 <- lm(log(WageNew) ~ Overall + Age, data = sub_data)
+om3 <- lm(log(WageNew) ~ Overall + Age + International.Reputation, data = sub_data)
+om4 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure, data = sub_data)
+om5 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special, data = sub_data)
+om6 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + ShortPassing, data = sub_data)
+om7 <- predi
+n <- length(om1$residuals) 
+extractAIC(om1, k = 2)
+extractAIC(om1, k = log(n))
+n <- length(om2$residuals) 
+extractAIC(om2, k = 2)
+extractAIC(om2, k = log(n))
+n <- length(om3$residuals) 
+extractAIC(om3, k = 2)
+extractAIC(om3, k = log(n))
+n <- length(om4$residuals) 
+extractAIC(om4, k = 2)
+extractAIC(om4, k = log(n))
+n <- length(om5$residuals) 
+extractAIC(om5, k = 2)
+extractAIC(om5, k = log(n))
+n <- length(om6$residuals) 
+extractAIC(om6, k = 2)
+extractAIC(om6, k = log(n))
+n <- length(om7$residuals) 
+extractAIC(om7, k = 2)
+extractAIC(om7, k = log(n))
+
 ```
 
 ### b) 
@@ -350,6 +390,11 @@ backwardAIC <- step(resp,scope=list(lower=~1,upper=~Overall + Age + Internationa
 backwardBIC <- step(resp, scope=list(lower=~1, upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing,direction="backward", data=player_data, k=log(nrow(player_data))))
 ```
 
+The optimal model based on AIC and BIC from the backward selection approach is log(WageNew) ~ Overall + International.Reputation + Age + newPos which gives us an AIC of -7744.81. 
+
+
+
+
 ### c) 
 ```{r P5c}
 resp <- lm(log(WageNew)~1, data=player_data)
@@ -358,6 +403,7 @@ forwardAIC <- step(resp,scope=list(lower=~1, upper=~Overall + Age + Internationa
 
 forwardBIC <- step(resp, scope=list(lower=~1,upper=~Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing, direction="forward", data=player_data, k=log(nrow(player_data))))
 ```
+Similar to the backward selection approach, the optimal model based on AIC and BIC from the forward selection approach is log(WageNew) ~ Overall + International.Reputation + Age + newPos which gives us an AIC of -7744.81. 
 
 
 ### d) 
