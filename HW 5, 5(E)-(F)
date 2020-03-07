@@ -1,0 +1,11 @@
+### e) Recommend a final model. Give detailed reasons to support your choice of the final model.
+```{}
+We recommend that we use log(WageNew) ~ Overall + International.Reputation + Age + newPos as the final model as it has the smallest AIC of -7744.8.
+```
+### f) Interpret the regression coefficients in the final model. Is it necessary to be cautious about taking these results too literally?
+```{r}
+lm(log(WageNew) ~ Overall + International.Reputation + Age + newPos, data = player_data)
+```
+```{}
+The above are the regression coefficients in the final model. 0.11459 (B0) is the mean of the transformed response variable WageNew; 0.12255 (B1), 0.47946 (B2), -0.02663 (B3), 0.41427 (B4), 0.50113 (B5), 0.35855 (B6), and 0.44138 (B7) are the differences between the predictors Overall, International.Reputation, Age, newPosB, newPosF, newPosGK, and newPosM with the transformed response variable WageNew. We ought to be cautious about taking these results too literally as this is a transformed model - therefore we must account for the differences caused by this.
+```
