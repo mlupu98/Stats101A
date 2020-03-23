@@ -1,0 +1,471 @@
+---
+title: "fifa final project"
+author: "Matei Lupu"
+date: "3/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r read}
+library(ggplot2)
+library(stringr)
+
+player_data <- read.csv("../fifa2019wages/FifaTrainNew.csv", stringsAsFactors = FALSE)
+test_data <- read.csv("../fifa2019wages/FifaNoY.csv", stringsAsFactors = FALSE)
+head(player_data)
+dim(player_data)
+
+```
+
+```{r add_columns}
+
+pos_vec <- c()
+for(elem in player_data$Position) {
+   if (is.na(elem)) {
+       pos_vec <- c(pos_vec, "0")
+   } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+       pos_vec <- c(pos_vec, "B")
+   } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+       pos_vec <- c(pos_vec, "M")
+   } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+       pos_vec <- c(pos_vec, "F")
+   } else {
+       pos_vec <- c(pos_vec, "GK")
+   }
+}
+
+player_data$newPos = pos_vec
+
+
+pos_vec <- c()
+for(elem in test_data$Position) {
+   if (is.na(elem)) {
+       pos_vec <- c(pos_vec, "0")
+   } else if(elem == "CB" | elem == "LB" | elem == "LCB" | elem == "RB" | elem == "RCB" | elem == "LWB" | elem == "RWB"){
+       pos_vec <- c(pos_vec, "B")
+   } else if (elem == "CDM" | elem == "CM" | elem == "LCM" | elem == "LDM" | elem == "LM" |  elem == "LW" | elem == "RCM" | elem == "RDM" | elem == "RW" | elem == "RM") {
+       pos_vec <- c(pos_vec, "M")
+   } else if (elem == "CAM" | elem == "CF" | elem == "LAM" | elem == "LF" | elem == "LS" |  elem == "RAM" | elem == "RF" | elem == "RS" | elem == "ST") {
+       pos_vec <- c(pos_vec, "F")
+   } else {
+       pos_vec <- c(pos_vec, "GK")
+   }
+}
+
+test_data$newPos = pos_vec
+
+
+player_data$newClub <- vector(mode="integer", length=12745)
+for(team in unique(player_data$Club[!is.na(player_data$Club)])){
+  curr <- player_data[which(player_data$Club == team),]
+  #print(team)
+  avg <- mean(curr$WageNew)
+  player_data[which(player_data$Club == team),]$newClub <- c(avg)*nrow(curr)
+}
+
+
+player_data$posMean <- vector(mode="integer", length=12745)
+player_data$posMed <- vector(mode="integer", length=12745)
+test_data$posMean <- vector(mode="integer", length=5462)
+test_data$posMed <- vector(mode="integer", length=5462)
+
+for(elem in unique(player_data$Position)){
+  curr <- player_data[which(player_data$Position == elem),]
+  avg <- mean(curr$WageNew)
+  med <- median(curr$WageNew)
+  player_data[which(player_data$Club == team),]$posMean <- c(avg)*nrow(curr)
+  player_data[which(player_data$Club == team),]$posMed <- c(med)*nrow(curr)
+
+}
+
+years_left <- c()
+
+for(i in seq_len(length(player_data$Contract.Valid.Until))){
+  if(is.na(player_data$Contract.Valid.Until[i])){
+    player_data$Contract.Valid.Until[i] <- 2018
+  }
+  
+  if(nchar(player_data$Contract.Valid.Until[i]) > 4){
+    years_left <- c(years_left, as.integer(str_sub(player_data$Contract.Valid.Until[i], -2, -1)) - 18)
+
+  }
+  else{
+    years_left <- c(years_left, as.integer(player_data$Contract.Valid.Until[i]) - 2018)
+  }
+}
+
+player_data$years.left <- years_left
+
+
+newClub <- cut(player_data$newClub, breaks = 20)
+
+lvls <- unique(cut(player_data$newClub[order(player_data$newClub, decreasing = TRUE)], breaks = 20))
+
+club_levels <- c("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z")
+
+
+new_club_factors <- c()
+for(elem in newClub){
+  new_club_factors <- c(new_club_factors, club_levels[which(lvls == elem)])
+}
+
+player_data$lvlClub <- new_club_factors
+
+
+
+newPos <- cut(player_data$posMed, breaks = 6)
+
+lvls <- unique(cut(player_data$posMed[order(player_data$posMed, decreasing = TRUE)], breaks = 6))
+
+new_player_pos <- c()
+for(elem in newPos){
+  new_player_pos <- c(new_player_pos, club_levels[which(lvls == elem)])
+}
+
+player_data$newPos <- new_player_pos
+
+
+newPos <- cut(test_data$posMed, breaks = 6)
+
+lvls <- unique(cut(test_data$posMed[order(test_data$posMed, decreasing = TRUE)], breaks = 6))
+
+test_player_pos <- c()
+for(elem in newPos){
+  test_player_pos <- c(test_player_pos, club_levels[which(lvls == elem)])
+}
+
+test_data$newPos <- test_player_pos
+
+```
+
+
+```{r graph}
+sum(is.na(player_data$Overall))
+sum(is.na(player_data$International.Reputation))
+sum(is.na(player_data$Age))
+sum(is.na(player_data$Club))
+
+ggplot(data = player_data, aes(x = Overall, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Age, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Finishing, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Potential, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Potential*Age, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = Weak.Foot, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = International.Reputation, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = newPos, y = WageNew)) + geom_point()
+ggplot(data = player_data, aes(x = years.left, y = WageNew)) + geom_point()
+
+
+
+#ggplot(data = player_data, aes(x = seq_len(nrow(player_data)), y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKDiving, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKPositioning, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKKicking, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKHandling, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "GK",], aes(x = GKReflexes, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "ST",], aes(x = Finishing, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "CF",], aes(x = Finishing, y = WageNew)) + geom_point()
+#ggplot(data = player_data[player_data$Position == "CAM",], aes(x = Finishing, y = WageNew)) + geom_point()
+```
+```{r find_cor}
+library(assertthat)
+
+levels(player_data$Position)
+cor_data <- na.omit(player_data)
+cor_goalie <- subset(player_data, Position == "GK")
+
+vals <- cor(cor_data[sapply(cor_data, is.numeric)])
+wage_corr <- vals[,'WageNew']
+wage_corr[order(wage_corr)]
+
+vals_g <- cor(cor_goalie[sapply(cor_goalie, is.numeric)])
+wage_corr_g <- vals_g[,'WageNew']
+wage_corr_g[order(wage_corr_g)]
+```
+
+```{r inter}
+interaction.plot(player_data$Real.Face, player_data$newPos, player_data$WageNew, type="b", col=c(1:2),xlab="face",ylab="Salary",main="Interaction Plot")
+
+
+interaction.plot(player_data$Skill.Moves, player_data$newPos, player_data$WageNew, type="b", col=c(1:2),xlab="face",ylab="Salary",main="Interaction Plot")
+
+interaction.plot(player_data$Work.Rate, player_data$newPos, player_data$WageNew, type="b", col=c(1:2),xlab="face",ylab="Salary",main="Interaction Plot")
+
+interaction.plot(player_data$Body.Type, player_data$newPos, player_data$WageNew, type="b", col=c(1:2),xlab="face",ylab="Salary",main="Interaction Plot")
+
+interaction.plot(player_data$Preferred.Foot, player_data$Body.Type, player_data$WageNew, type="b", col=c(1:2),xlab="face",ylab="Salary",main="Interaction Plot")
+
+head(player_data)
+
+summary(lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Real.Face + Body.Type + Preferred.Foot + Body.Type*Preferred.Foot + years.left + years.left*Age, data = player_data))
+```
+
+```{r best_fits}
+library(leaps)
+
+print(player_data$newPos)
+sub <- regsubsets(WageNew ~ Overall + International.Reputation + Age + Real.Face + Reactions + Potential +  ShortPassing, data = player_data, method = "exhaustive")
+
+print(sub_sum <- summary(sub))
+par(mfrow=c(1,1))
+plot(1:7,sub_sum$adjr2,xlab="Subset Size",ylab="Adjusted R-squared")
+om1 <- lm(log(WageNew) ~ Overall, data = player_data)
+om2 <- lm(log(WageNew) ~ Overall + International.Reputation, data = player_data)
+om3 <- lm(log(WageNew) ~ Overall + Age + International.Reputation, data = player_data)
+om4 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Reactions, data = player_data)
+om5 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Reactions + ShortPassing, data = player_data)
+om6 <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Reactions + ShortPassing + Potential, data = player_data)
+om7 <- lm(log(WageNew) ~ Overall + International.Reputation + Age + Real.Face + Reactions + Potential + ShortPassing, data = player_data)
+
+n <- length(om1$residuals) 
+extractAIC(om1, k = 2)
+extractAIC(om1, k = log(n))
+n <- length(om2$residuals) 
+extractAIC(om2, k = 2)
+extractAIC(om2, k = log(n))
+n <- length(om3$residuals) 
+extractAIC(om3, k = 2)
+extractAIC(om3, k = log(n))
+n <- length(om4$residuals) 
+extractAIC(om4, k = 2)
+extractAIC(om4, k = log(n))
+n <- length(om5$residuals) 
+extractAIC(om5, k = 2)
+extractAIC(om5, k = log(n))
+n <- length(om6$residuals) 
+extractAIC(om6, k = 2)
+extractAIC(om6, k = log(n))
+n <- length(om7$residuals) 
+extractAIC(om7, k = 2)
+extractAIC(om7, k = log(n))
+```
+
+
+```{r teams}
+library("car")
+inverseResponsePlot(lm(WageNew ~ Overall + Age + International.Reputation + Club + Composure + Real.Face + ShortPassing, lambda=c(0.5,0, 0.25), data = player_data))
+```
+
+```{r forward}
+library(MASS)
+# Fit the full model 
+full.model <- lm(WageNew ~ Age + Overall + Potential + Special + International.Reputation + Composure + Weak.Foot + Skill.Moves + newPos, data = player_data)
+# Stepwise regression model
+
+resp <- lm(WageNew~1, data = player_data)
+step.forwardB <- step(resp, scope=list(lower = ~ 1, upper = ~ Age + Overall + Potential + Composure + International.Reputation, direction = "forward", data = player_data, k =log(length(player_data$WageNew))))
+
+step.forwardA <- step(resp, scope=list(lower = ~ 1, upper = ~ Age + Overall + Potential + newPos + Composure + Special + International.Reputation + newClub, direction = "forward", data = player_data, k = 2))
+
+step.forwardB <- step(resp, scope=list(lower = ~ 1, upper = ~ Age + Overall + Potential + Composure + International.Reputation, direction = "backward", data = player_data, k =log(length(player_data$WageNew))))
+
+step.forwardA <- step(resp, scope=list(lower = ~ 1, upper = ~ Age + Overall + Potential + newPos + Composure + Special + International.Reputation + newClub, direction = "backward", data = player_data, k = 2))
+
+ggplot(data = player_data, aes(x = Position, y = WageNew)) + geom_point()
+```
+
+```{r pred}
+
+summary(lm(Composure ~ Overall, data = player_data))
+head(player_data)
+
+summary(lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + newPos + ShortPassing + Real.Face + Skill.Moves, data = player_data))
+```
+
+```{r rep_missing}
+for(i in 1:length(player_data$Club)) {
+    if(is.na(player_data$Club[i]) ){
+        player_data$Club[i] <- "MISSING"
+    }
+    if(is.na(player_data$Position[i]) ){
+        player_data$Position[i] <- "MISSING"
+    }
+    if(is.na(player_data$Overall[i])){
+        player_data$Overall[i] <- mean(player_data$Overall[i])
+    }
+    if(is.na(test_data$Age[i])){
+        player_data$Age[i] <- mean(player_data$Age[i])
+    }
+    if(is.na(player_data$International.Reputation[i])){
+        player_data$International.Reputation[i] <- 1
+    }
+    if(is.na(player_data$ShortPassing[i])){
+        player_data$ShortPassing[i] <- player_data$Overall[i]#min(player_data$ShortPassing, na.rm = TRUE)
+    }
+    if(is.na(player_data$Reactions[i])){
+        player_data$Reactions [i] <- player_data$Overall[i]#min(player_data$ShortPassing, na.rm = TRUE)
+    }
+    if(is.na(player_data$BallControl[i])){
+        player_data$BallControl[i] <- player_data$Overall[i]#min(player_data$BallControl, na.rm = TRUE)
+    }
+    if(is.na(player_data$Composure[i])){
+        player_data$Composure[i] <- player_data$Overall[i]#min(player_data$Composure, na.rm = TRUE)
+    }
+    if(is.na(player_data$BallControl[i])){
+        player_data$BallControl[i] <- player_data$Overall[i]#min(player_data$BallControl, na.rm = TRUE)
+    }
+    if(is.na(player_data$Skill.Moves[i])){
+        player_data$Skill.Moves[i] <- 2#min(player_data$ShortPassing, na.rm = TRUE)
+    }
+    if(is.na(player_data$Vision[i])){
+        player_data$Vision[i] <- player_data$Overall[i]# min(player_data$Vision, na.rm = TRUE)
+    }
+    if(is.na(player_data$Potential[i])){
+        player_data$Potential[i] <-  player_data$Overall[i]#min(player_data$Dribbling, na.rm = TRUE)
+    }
+    if(is.na(player_data$Reactions[i])){
+        player_data$Reactions[i] <-  player_data$Overall[i]#min(player_data$ShotPower, na.rm = TRUE)
+    }
+    if(is.na(player_data$GKHandling[i])){
+        player_data$GKHandling[i] <- min(player_data$GKHandling, na.rm = TRUE)
+    }
+    if(is.na(player_data$Strength[i])){
+        player_data$Strength[i] <- min(player_data$Strength, na.rm = TRUE)
+    }
+    if(is.na(player_data$Contract.Valid.Until[i])){
+        player_data$Contract.Valid.Until[i] <- min(player_data$Contract.Valid.Until, na.rm = TRUE)
+    }
+    if(is.na(player_data$Real.Face[i])){
+        player_data$Real.Face[i] <- "No"
+    }
+    if(is.na(player_data$Body.Type[i])){
+        player_data$Body.Type[i] <- "Normal"
+    }
+    if(is.na(player_data$Preferred.Foot[i])){
+        player_data$Preferred.Foot[i] <- "Right"
+    }
+}
+
+
+for(i in 1:length(test_data$Club)) {
+    if(is.na(test_data$Club[i]) ){
+        test_data$Club[i] <- "MISSING"
+    }
+    if(is.na(test_data$Position[i]) ){
+        test_data$Position[i] <- "MISSING"
+    }
+    if(is.na(test_data$Overall[i])){
+        test_data$Overall[i] <- mean(test_data$Overall[i], na.rm = FALSE)
+    }
+    if(is.na(test_data$Age[i])){
+        test_data$Age[i] <- mean(test_data$Age[i])
+    }
+    if(is.na(test_data$International.Reputation[i])){
+        test_data$International.Reputation[i] <- 1
+    }
+    if(is.na(test_data$ShortPassing[i])){
+        test_data$ShortPassing[i] <- test_data$Overall[i]#min(test_data$ShortPassing, na.rm = TRUE)
+    }
+    if(is.na(test_data$Reactions[i])){
+        test_data$Reactions[i] <- test_data$Overall[i]#min(test_data$BallControl, na.rm = TRUE)
+    }
+    if(is.na(test_data$Composure[i])){
+        test_data$Composure[i] <- test_data$Overall[i]#min(test_data$Composure, na.rm = TRUE)
+    }
+    if(is.na(test_data$BallControl[i])){
+        test_data$BallControl[i] <- test_data$Overall[i]#min(test_data$Composure, na.rm = TRUE)min(test_data$BallControl, na.rm = TRUE)
+    }
+    if(is.na(test_data$Vision[i])){
+        test_data$Vision[i] <- test_data$Overall[i]#min(test_data$Vision, na.rm = TRUE)
+    }
+    if(is.na(test_data$Potential[i])){
+        test_data$Potential[i] <- test_data$Overall[i]#min(test_data$Dribbling, na.rm = TRUE)
+    }
+    if(is.na(test_data$Skill.Moves[i])){
+        test_data$Skill.Moves[i] <- 2#min(test_data$ShotPower, na.rm = TRUE)
+    }
+    if(is.na(test_data$GKHandling[i])){
+        test_data$GKHandling[i] <- min(test_data$GKHandling, na.rm = TRUE)
+    }
+    if(is.na(test_data$Strength[i])){
+        test_data$Strength[i] <- min(test_data$Strength, na.rm = TRUE)
+    }
+    if(is.na(test_data$Contract.Valid.Until[i])){
+        test_data$Contract.Valid.Until[i] <- min(test_data$Contract.Valid.Until, na.rm = TRUE)
+    }
+    if(is.na(test_data$Real.Face[i])){
+        test_data$Real.Face[i] <- "No"
+    }
+}
+
+```
+
+```{r test}
+
+
+tr_func <- function(train_ratio, size) {
+    avg <- 0
+    for(i in 1:25) {
+        size_vec <- seq_len(size)
+        train_rows <- sample(1:size, size = train_ratio * size, replace = FALSE)
+        test_rows <- size_vec[-train_rows]
+    
+
+        #lin_reg <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + BallControl + ShortPassing + Vision + Dribbling + ShotPower + Real.Face + years.left, data = player_data[train_rows,])
+        
+        lin_reg <- lm(log(WageNew) ~ Overall + International.Reputation + Age + Club + Real.Face + Reactions + ShortPassing, data = player_data[train_rows,])
+        
+        #Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing
+        
+        pred_wages <- predict(lin_reg, player_data[test_rows,])
+        
+        pred_wages = exp(pred_wages)
+
+              
+        SSR <- sum((pred_wages - player_data$WageNew[test_rows])^2)
+        print(sum(is.na(pred_wages)))
+        avg <- avg + SSR / 25
+
+    }
+  
+    formatC(avg, format = "e", digits = 5)
+}
+
+#lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club, data = player_data)
+
+#inverseResponsePlot(lm(log(WageNew) ~ Overall + Age + International.Reputation + Club + Composure + Real.Face + ShortPassing, data = player_data))
+
+tr_func(0.8, nrow(player_data))
+```
+
+
+```{r pred}
+#predi <- lm(log(WageNew) ~ Overall + Age + International.Reputation + Composure + Special + Club + newPos + ShortPassing, data = player_data)
+
+predi <- lm(WageNew^(1.15) ~ Overall^4 + International.Reputation + Composure + BallControl^3, data = player_data)
+#predi <- lm(log(WageNew) ~ Overall + International.Reputation + Club + Age + Real.Face + newPos + Reactions, data = player_data)
+
+#predi<- lm(log(WageNew) ~ Overall + International.Reputation + newClub + Real.Face, data = player_data)
+
+#bc <- boxCox(predi, lambdas = seq(-2, 2, by = 0.1))
+#(best.lam = bc$x[which(bc$y == max(bc$y))])
+#boxTidwell(log(WageNew) ~ Overall + Reactions, data=player_data)
+
+
+#Overall + Age + International.Reputation + Composure + Special + Club + newPos + BallControl + ShortPassing + Vision + Dribbling + ShotPower + GKHandling + Strength + Real.Face, data
+
+plot(predi)
+summary(predi)
+anova(predi)
+
+#vif(predi)
+
+cor(player_data$Age, player_data$Overall)
+
+inverseResponsePlot(predi)
+
+pred_wages <- predict(predi, test_data)
+
+pred_wages <-exp(pred_wages)
+
+
+result_matrix <- matrix(test_data$Ob)
+result_matrix <- cbind(result_matrix, pred_wages)
+colnames(result_matrix) <- c("Ob", "WageNew")
+write.csv(result_matrix, "Test Regression", row.names = FALSE)
+
+plot(pred_wages)
+```
